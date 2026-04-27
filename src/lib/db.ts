@@ -1,134 +1,95 @@
 /**
- * IndexedDB data layer using the `idb` library.
- * All financial data is persisted locally.
+ * Firebase Firestore data layer.
+ * Replaces IndexedDB to provide real-time cloud sync across devices
+ * while maintaining offline capabilities.
  */
 
-import { openDB, type IDBPDatabase } from 'idb';
+import { collection, getDocs, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { db } from './firebase';
 import type { Transaction, FixedExpense, WishlistItem } from '../types/finance';
 
-const DB_NAME = 'worktrackify-finance';
-const DB_VERSION = 1;
-
-// Store names
-const STORES = {
+const COLLECTIONS = {
   TRANSACTIONS: 'transactions',
   FIXED_EXPENSES: 'fixedExpenses',
   WISHLIST: 'wishlist',
 } as const;
 
-let dbPromise: Promise<IDBPDatabase> | null = null;
-
-function getDB(): Promise<IDBPDatabase> {
-  if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        // Transactions store
-        if (!db.objectStoreNames.contains(STORES.TRANSACTIONS)) {
-          const txStore = db.createObjectStore(STORES.TRANSACTIONS, { keyPath: 'id' });
-          txStore.createIndex('by-date', 'date');
-          txStore.createIndex('by-type', 'type');
-        }
-
-        // Fixed expenses store
-        if (!db.objectStoreNames.contains(STORES.FIXED_EXPENSES)) {
-          db.createObjectStore(STORES.FIXED_EXPENSES, { keyPath: 'id' });
-        }
-
-        // Wishlist store
-        if (!db.objectStoreNames.contains(STORES.WISHLIST)) {
-          db.createObjectStore(STORES.WISHLIST, { keyPath: 'id' });
-        }
-      },
-    });
-  }
-  return dbPromise;
-}
-
 // ============= Transactions =============
 
 export async function getAllTransactions(): Promise<Transaction[]> {
-  const db = await getDB();
-  return db.getAll(STORES.TRANSACTIONS);
+  const snapshot = await getDocs(collection(db, COLLECTIONS.TRANSACTIONS));
+  return snapshot.docs.map(doc => doc.data() as Transaction);
 }
 
 export async function getTransactionsByMonth(year: number, month: number): Promise<Transaction[]> {
-  const db = await getDB();
-  const all = await db.getAll(STORES.TRANSACTIONS);
+  const all = await getAllTransactions();
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
   return all.filter(t => t.date.startsWith(prefix));
 }
 
 export async function addTransaction(tx: Transaction): Promise<void> {
-  const db = await getDB();
-  await db.put(STORES.TRANSACTIONS, tx);
+  await setDoc(doc(db, COLLECTIONS.TRANSACTIONS, tx.id), tx);
 }
 
 export async function updateTransaction(tx: Transaction): Promise<void> {
-  const db = await getDB();
-  await db.put(STORES.TRANSACTIONS, tx);
+  await setDoc(doc(db, COLLECTIONS.TRANSACTIONS, tx.id), tx);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(STORES.TRANSACTIONS, id);
+  await deleteDoc(doc(db, COLLECTIONS.TRANSACTIONS, id));
 }
 
 // ============= Fixed Expenses =============
 
 export async function getAllFixedExpenses(): Promise<FixedExpense[]> {
-  const db = await getDB();
-  return db.getAll(STORES.FIXED_EXPENSES);
+  const snapshot = await getDocs(collection(db, COLLECTIONS.FIXED_EXPENSES));
+  return snapshot.docs.map(doc => doc.data() as FixedExpense);
 }
 
 export async function addFixedExpense(expense: FixedExpense): Promise<void> {
-  const db = await getDB();
-  await db.put(STORES.FIXED_EXPENSES, expense);
+  await setDoc(doc(db, COLLECTIONS.FIXED_EXPENSES, expense.id), expense);
 }
 
 export async function updateFixedExpense(expense: FixedExpense): Promise<void> {
-  const db = await getDB();
-  await db.put(STORES.FIXED_EXPENSES, expense);
+  await setDoc(doc(db, COLLECTIONS.FIXED_EXPENSES, expense.id), expense);
 }
 
 export async function deleteFixedExpense(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(STORES.FIXED_EXPENSES, id);
+  await deleteDoc(doc(db, COLLECTIONS.FIXED_EXPENSES, id));
 }
 
 // ============= Wishlist =============
 
 export async function getAllWishlistItems(): Promise<WishlistItem[]> {
-  const db = await getDB();
-  return db.getAll(STORES.WISHLIST);
+  const snapshot = await getDocs(collection(db, COLLECTIONS.WISHLIST));
+  return snapshot.docs.map(doc => doc.data() as WishlistItem);
 }
 
 export async function addWishlistItem(item: WishlistItem): Promise<void> {
-  const db = await getDB();
-  await db.put(STORES.WISHLIST, item);
+  await setDoc(doc(db, COLLECTIONS.WISHLIST, item.id), item);
 }
 
 export async function updateWishlistItem(item: WishlistItem): Promise<void> {
-  const db = await getDB();
-  await db.put(STORES.WISHLIST, item);
+  await setDoc(doc(db, COLLECTIONS.WISHLIST, item.id), item);
 }
 
 export async function deleteWishlistItem(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(STORES.WISHLIST, id);
+  await deleteDoc(doc(db, COLLECTIONS.WISHLIST, id));
 }
 
 // ============= Bulk / Utility =============
 
 export async function clearAllData(): Promise<void> {
-  const db = await getDB();
-  const tx = db.transaction(
-    [STORES.TRANSACTIONS, STORES.FIXED_EXPENSES, STORES.WISHLIST],
-    'readwrite'
-  );
-  await Promise.all([
-    tx.objectStore(STORES.TRANSACTIONS).clear(),
-    tx.objectStore(STORES.FIXED_EXPENSES).clear(),
-    tx.objectStore(STORES.WISHLIST).clear(),
-    tx.done,
-  ]);
+  const batch = writeBatch(db);
+  
+  const txs = await getDocs(collection(db, COLLECTIONS.TRANSACTIONS));
+  txs.forEach(d => batch.delete(d.ref));
+  
+  const fes = await getDocs(collection(db, COLLECTIONS.FIXED_EXPENSES));
+  fes.forEach(d => batch.delete(d.ref));
+  
+  const wls = await getDocs(collection(db, COLLECTIONS.WISHLIST));
+  wls.forEach(d => batch.delete(d.ref));
+  
+  await batch.commit();
 }
