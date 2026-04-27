@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --color-brand-50: oklch(0.97 0.02 350);
+  --color-brand-100: oklch(0.93 0.04 350);
+  --color-brand-200: oklch(0.86 0.08 350);
+  --color-brand-300: oklch(0.76 0.14 350);
+  --color-brand-400: oklch(0.66 0.20 350);
+  --color-brand-500: oklch(0.55 0.24 345);
+  --color-brand-600: oklch(0.48 0.22 345);
+  --color-brand-700: oklch(0.40 0.18 345);
+
+  --color-surface-50: oklch(0.985 0.002 265);
+  --color-surface-100: oklch(0.965 0.004 265);
+  --color-surface-200: oklch(0.925 0.006 265);
+  --color-surface-300: oklch(0.87 0.01 265);
+  --color-surface-400: oklch(0.7 0.015 265);
+  --color-surface-500: oklch(0.55 0.02 265);
+  --color-surface-600: oklch(0.45 0.02 265);
+  --color-surface-700: oklch(0.35 0.02 265);
+  --color-surface-800: oklch(0.25 0.02 265);
+  --color-surface-900: oklch(0.18 0.02 265);
+  --color-surface-950: oklch(0.12 0.02 265);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-300);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-400);
+}
+
+/* Number input spinner removal */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glass card effects */
+.glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Pulse glow for brand accents */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.55 0.24 345 / 0.4); }
+  50% { box-shadow: 0 0 16px 4px oklch(0.55 0.24 345 / 0.15); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}

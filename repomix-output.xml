@@ -1,0 +1,1362 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/workflows/deploy.yml
+.gitignore
+index.html
+package.json
+README.md
+src/App.tsx
+src/components/Dashboard.tsx
+src/components/LoginScreen.tsx
+src/components/SettingsPanel.tsx
+src/google-api.ts
+src/index.css
+src/main.tsx
+tsconfig.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/deploy.yml">
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+</file>
+
+<file path=".gitignore">
+node_modules/
+dist/
+.DS_Store
+*.log
+.env*
+*.local
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WorkTrackify - Calendar Salary Tracker</title>
+    <meta name="description" content="Tự động theo dõi giờ làm từ Google Calendar, tính lương tháng/tuần với trừ giờ nghỉ thông minh." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="package.json">
+{
+  "name": "worktrackify",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.4",
+    "@vitejs/plugin-react": "^6.0.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^1.11.0",
+    "motion": "^12.38.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwind-merge": "^3.5.0",
+    "vite": "^8.0.10"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "~6.0.3"
+  }
+}
+</file>
+
+<file path="README.md">
+<div align="center">
+
+# 💼 WorkTrackify
+
+**Tự động theo dõi giờ làm & tính lương từ Google Calendar**
+
+[![Deploy to GitHub Pages](https://img.shields.io/badge/deploy-GitHub%20Pages-blue?logo=github)](https://pages.github.com/)
+
+</div>
+
+---
+
+## ✨ Tính năng
+
+- 🔐 **Đăng nhập Google** — Chọn tài khoản Google bất kỳ (client-side OAuth)
+- 📅 **Sync Google Calendar** — Tự động lấy sự kiện từ Calendar theo tháng
+- 💰 **Tính lương thông minh** — Trừ giờ nghỉ tự động (30 phút nếu 6-8h, 1h nếu >8h)
+- 📊 **Thống kê theo tuần** — Bảng breakdown lương theo từng tuần
+- 🎯 **Mục tiêu thu nhập** — Theo dõi tiến độ đạt mục tiêu lương tháng
+- ⚡ **Auto-sync** — Tự động sync lại mỗi X phút (tuỳ chỉnh)
+- 🔍 **Lọc sự kiện** — Filter theo từ khoá (💼, work, timezone pac, ...)
+- ⚙️ **Settings** — Tuỳ chỉnh lương/giờ, mục tiêu, từ khoá lọc
+- 📱 **Responsive** — Tối ưu cho cả desktop & mobile
+
+## 🚀 Deploy lên GitHub Pages
+
+### Bước 1: Tạo Google OAuth Client ID
+
+1. Vào [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Tạo project mới hoặc chọn project có sẵn
+3. Bật **Google Calendar API** tại [API Library](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com)
+4. Vào **Credentials** → **Create Credentials** → **OAuth Client ID**
+5. Chọn **Web application**
+6. Thêm **Authorized JavaScript origins**:
+   - `https://<username>.github.io` (cho GitHub Pages)
+   - `http://localhost:5173` (cho development)
+7. Copy **Client ID** (dạng `xxxxxx.apps.googleusercontent.com`)
+
+### Bước 2: Deploy
+
+1. Push code lên GitHub repository
+2. Vào **Settings** → **Pages** → chọn Source: **GitHub Actions**
+3. Push code, GitHub Actions sẽ tự động build & deploy
+4. Truy cập `https://<username>.github.io/<repo-name>/`
+5. Nhập Google Client ID ở màn hình login và kết nối!
+
+## 🛠️ Chạy Local
+
+```bash
+npm install
+npm run dev
+```
+
+Mở http://localhost:5173
+
+## 📁 Cấu trúc
+
+```
+├── src/
+│   ├── App.tsx              # Main app (auth state, routing)
+│   ├── google-api.ts        # Google OAuth & Calendar API (client-side)
+│   ├── components/
+│   │   ├── LoginScreen.tsx   # Trang đăng nhập + setup Client ID
+│   │   ├── Dashboard.tsx     # Dashboard chính (bento grid)
+│   │   └── SettingsPanel.tsx  # Panel cài đặt
+│   ├── main.tsx
+│   └── index.css            # Design system (TailwindCSS v4)
+├── .github/workflows/
+│   └── deploy.yml           # Auto deploy to GitHub Pages
+├── index.html
+├── vite.config.ts
+└── package.json
+```
+
+## 🔒 Bảo mật
+
+- **100% client-side** — Không có server, không lưu token trên server
+- Tokens lưu trong `localStorage` của trình duyệt
+- Sử dụng Google Identity Services (GIS) — OAuth 2.0 implicit flow
+- Chỉ yêu cầu quyền `calendar.readonly` và `userinfo`
+</file>
+
+<file path="src/App.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { addMonths } from 'date-fns';
+import {
+  loadTokens, clearTokens, loadUser, loadSettings, saveSettings,
+  initiateGoogleLogin, fetchUserInfo, fetchCalendarEvents,
+  type GoogleTokens, type GoogleUser, type CalendarEvent, type AppSettings,
+} from './google-api';
+import LoginScreen from './components/LoginScreen';
+import Dashboard from './components/Dashboard';
+import SettingsPanel from './components/SettingsPanel';
+
+export default function App() {
+  const [tokens, setTokens] = useState<GoogleTokens | null>(null);
+  const [user, setUser] = useState<GoogleUser | null>(null);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<AppSettings>(loadSettings());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Check saved auth on mount
+  useEffect(() => {
+    const saved = loadTokens();
+    if (saved) {
+      setTokens(saved);
+      const savedUser = loadUser();
+      if (savedUser) setUser(savedUser);
+    }
+    setLoading(false);
+  }, []);
+
+  // Fetch events whenever tokens or month changes
+  const doSync = useCallback(async (t?: GoogleTokens | null) => {
+    const tk = t || tokens;
+    if (!tk) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchCalendarEvents(tk.access_token, currentMonth.getFullYear(), currentMonth.getMonth());
+      setEvents(data);
+      // Also refresh user info
+      if (!user) {
+        const u = await fetchUserInfo(tk.access_token);
+        setUser(u);
+      }
+    } catch (err: any) {
+      if (err.message === 'TOKEN_EXPIRED') {
+        clearTokens();
+        setTokens(null);
+        setUser(null);
+        setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [tokens, currentMonth, user]);
+
+  useEffect(() => {
+    if (tokens) doSync();
+  }, [tokens, currentMonth]);
+
+  // Auto-sync interval
+  useEffect(() => {
+    if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
+    if (tokens && settings.autoSyncMinutes > 0) {
+      syncIntervalRef.current = setInterval(() => doSync(), settings.autoSyncMinutes * 60 * 1000);
+    }
+    return () => { if (syncIntervalRef.current) clearInterval(syncIntervalRef.current); };
+  }, [tokens, settings.autoSyncMinutes, doSync]);
+
+  const handleLogin = async () => {
+    setError(null);
+    try {
+      const newTokens = await initiateGoogleLogin(settings.clientId);
+      setTokens(newTokens);
+      const u = await fetchUserInfo(newTokens.access_token);
+      setUser(u);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleLogout = () => {
+    clearTokens();
+    setTokens(null);
+    setUser(null);
+    setEvents([]);
+  };
+
+  const handleUpdateSettings = (s: AppSettings) => {
+    setSettings(s);
+    saveSettings(s);
+  };
+
+  // Initial loading
+  if (loading && !tokens) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-surface-50 to-surface-100">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <p className="mt-4 text-surface-500 font-medium tracking-tight">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not logged in
+  if (!tokens) {
+    return (
+      <>
+        <LoginScreen onLogin={handleLogin} settings={settings} onUpdateSettings={handleUpdateSettings} error={error} />
+      </>
+    );
+  }
+
+  // Dashboard
+  return (
+    <>
+      <Dashboard
+        events={events}
+        settings={settings}
+        user={user}
+        currentMonth={currentMonth}
+        onPrevMonth={() => setCurrentMonth(m => addMonths(m, -1))}
+        onNextMonth={() => setCurrentMonth(m => addMonths(m, 1))}
+        onSync={() => doSync()}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onLogout={handleLogout}
+        loading={loading}
+      />
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onUpdate={handleUpdateSettings}
+        user={user}
+        onLogout={handleLogout}
+      />
+    </>
+  );
+}
+</file>
+
+<file path="src/components/Dashboard.tsx">
+import { useMemo } from 'react';
+import { motion } from 'motion/react';
+import {
+  Briefcase, ChevronLeft, ChevronRight, Clock, AlertCircle,
+  LogOut, Settings, RefreshCw, CalendarDays, TrendingUp, Zap
+} from 'lucide-react';
+import { format, getWeek, parseISO, differenceInMinutes } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import type { CalendarEvent, AppSettings, GoogleUser } from '../google-api';
+
+interface CalculatedEvent {
+  id: string; summary: string; start: Date; end: Date;
+  rawMinutes: number; paidMinutes: number; salary: number; week: number;
+}
+
+interface Props {
+  events: CalendarEvent[];
+  settings: AppSettings;
+  user: GoogleUser | null;
+  currentMonth: Date;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onSync: () => void;
+  onOpenSettings: () => void;
+  onLogout: () => void;
+  loading: boolean;
+}
+
+function formatHours(minutes: number) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`;
+}
+
+export default function Dashboard({
+  events, settings, user, currentMonth,
+  onPrevMonth, onNextMonth, onSync, onOpenSettings, onLogout, loading
+}: Props) {
+  const processedEvents = useMemo<CalculatedEvent[]>(() => {
+    const keywords = settings.filterKeywords.map(k => k.toLowerCase());
+    return events
+      .filter(e => {
+        if (keywords.length === 0) return true;
+        const s = (e.summary || '').toLowerCase();
+        return keywords.some(kw => s.includes(kw));
+      })
+      .filter(e => e.start.dateTime && e.end.dateTime)
+      .map(e => {
+        const start = parseISO(e.start.dateTime!);
+        const end = parseISO(e.end.dateTime!);
+        const rawMinutes = differenceInMinutes(end, start);
+        const rawHours = rawMinutes / 60;
+        let deduction = 0;
+        if (rawHours >= 8) deduction = 60;
+        else if (rawHours >= 6) deduction = 30;
+        const paidMinutes = rawMinutes - deduction;
+        return {
+          id: e.id, summary: e.summary, start, end,
+          rawMinutes, paidMinutes,
+          salary: (paidMinutes / 60) * settings.ratePerHour,
+          week: getWeek(start),
+        };
+      })
+      .sort((a, b) => b.start.getTime() - a.start.getTime());
+  }, [events, settings]);
+
+  const stats = useMemo(() => {
+    const totalSalary = processedEvents.reduce((a, c) => a + c.salary, 0);
+    const totalPaidMin = processedEvents.reduce((a, c) => a + c.paidMinutes, 0);
+    const totalRawMin = processedEvents.reduce((a, c) => a + c.rawMinutes, 0);
+
+    const weekMap: Record<string, { salary: number; rawMin: number; paidMin: number; count: number }> = {};
+    processedEvents.forEach(e => {
+      const key = `Tuần ${e.week}`;
+      if (!weekMap[key]) weekMap[key] = { salary: 0, rawMin: 0, paidMin: 0, count: 0 };
+      weekMap[key].salary += e.salary;
+      weekMap[key].rawMin += e.rawMinutes;
+      weekMap[key].paidMin += e.paidMinutes;
+      weekMap[key].count++;
+    });
+
+    const weeklyBreakdown = Object.entries(weekMap)
+      .map(([name, d]) => ({ name, ...d }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const progress = settings.targetSalary > 0 ? (totalSalary / settings.targetSalary) * 100 : 0;
+    return {
+      totalSalary, totalPaidMin, totalRawMin, weeklyBreakdown,
+      shiftCount: processedEvents.length,
+      avgMin: processedEvents.length ? totalPaidMin / processedEvents.length : 0,
+      progress,
+    };
+  }, [processedEvents, settings]);
+
+  const upcomingShift = useMemo(() => {
+    const now = new Date();
+    return processedEvents.filter(e => e.start >= now).sort((a, b) => a.start.getTime() - b.start.getTime())[0];
+  }, [processedEvents]);
+
+  const remainingToTarget = Math.max(0, settings.targetSalary - stats.totalSalary);
+  const hoursNeeded = remainingToTarget / settings.ratePerHour;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-brand-50/20 to-surface-100 text-surface-900 font-sans p-4 md:p-6 overflow-x-hidden flex flex-col">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-6 md:mb-8 max-w-7xl mx-auto w-full">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="bg-gradient-to-br from-brand-400 to-brand-600 p-2.5 rounded-xl shadow-lg shadow-brand-200/40">
+            <Briefcase className="h-5 w-5 md:h-6 md:w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-black tracking-tight text-surface-800">WorkTrackify</h1>
+            <div className="flex items-center gap-2">
+              <button onClick={onPrevMonth} className="hover:text-brand-500 transition-colors"><ChevronLeft className="w-3.5 h-3.5" /></button>
+              <span className="text-[10px] md:text-xs text-surface-400 uppercase tracking-[0.15em] font-black">
+                {format(currentMonth, 'MMMM yyyy', { locale: vi })}
+              </span>
+              <button onClick={onNextMonth} className="hover:text-brand-500 transition-colors"><ChevronRight className="w-3.5 h-3.5" /></button>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2 md:gap-3">
+          <button onClick={onSync} disabled={loading}
+            className="px-3 md:px-5 py-2 md:py-2.5 bg-white border border-surface-200 rounded-full text-xs md:text-sm font-bold hover:bg-surface-50 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 shadow-sm">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Sync</span>
+          </button>
+          <button onClick={onOpenSettings}
+            className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center bg-white border border-surface-200 text-surface-500 rounded-full hover:bg-surface-50 transition-all active:scale-95 shadow-sm">
+            <Settings className="w-4 h-4 md:w-5 md:h-5" />
+          </button>
+          {user && (
+            <img src={user.picture} alt="" className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white shadow-sm" />
+          )}
+        </div>
+      </header>
+
+      {/* Bento Grid */}
+      <div className="grid grid-cols-12 auto-rows-[110px] md:auto-rows-[120px] gap-4 md:gap-6 max-w-7xl mx-auto w-full flex-1">
+        {/* Salary Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="col-span-12 md:col-span-5 row-span-2 bg-white rounded-[2rem] md:rounded-[2.5rem] border border-surface-200/60 p-6 md:p-8 flex flex-col justify-between shadow-sm relative overflow-hidden">
+          <div className="z-10">
+            <p className="text-[10px] md:text-sm font-bold text-surface-400 uppercase tracking-widest mb-1 md:mb-2">Thu nhập tháng này</p>
+            <h2 className="text-3xl md:text-5xl font-black text-surface-800 tracking-tighter">
+              {Math.round(stats.totalSalary).toLocaleString()}
+              <span className="text-lg md:text-xl ml-1 opacity-30 font-bold tracking-normal">₫</span>
+            </h2>
+          </div>
+          <div className="mt-4 md:mt-6 z-10">
+            <div className="flex justify-between text-[9px] md:text-[10px] font-black mb-2 uppercase tracking-widest opacity-60">
+              <span>Mục tiêu: {settings.targetSalary.toLocaleString()}₫</span>
+              <span>{stats.progress.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-surface-100 h-3 md:h-4 rounded-2xl overflow-hidden p-0.5 md:p-1 border border-surface-200">
+              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, stats.progress)}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                className="bg-gradient-to-r from-brand-400 to-brand-600 h-full rounded-xl shadow-[0_0_12px_rgba(236,72,153,0.3)]" />
+            </div>
+          </div>
+          <div className="absolute -right-10 -top-10 bg-brand-100 w-48 h-48 rounded-full blur-3xl opacity-40" />
+        </motion.div>
+
+        {/* Upcoming Shift */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="col-span-12 md:col-span-4 row-span-2 bg-gradient-to-br from-brand-500 to-brand-600 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 text-white shadow-xl shadow-brand-300/30 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Ca làm tiếp theo</span>
+            <div className="bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-wider">
+              {upcomingShift ? format(upcomingShift.start, 'EEEE', { locale: vi }) : 'CHƯA CÓ'}
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-base md:text-xl font-bold truncate">{upcomingShift?.summary || 'Nghỉ ngơi ✨'}</h3>
+            <p className="text-2xl md:text-4xl font-black mt-1 tracking-tighter">
+              {upcomingShift ? `${format(upcomingShift.start, 'HH:mm')} - ${format(upcomingShift.end, 'HH:mm')}` : '-- : --'}
+            </p>
+            <div className="flex gap-4 mt-4 md:mt-6">
+              <div className="flex flex-col">
+                <span className="text-[8px] md:text-[9px] uppercase font-black opacity-60 tracking-wider">Gross</span>
+                <span className="text-xs md:text-sm font-bold">{upcomingShift ? formatHours(upcomingShift.rawMinutes) : '0h'}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[8px] md:text-[9px] uppercase font-black opacity-60 tracking-wider">Paid</span>
+                <span className="text-xs md:text-sm font-bold text-brand-100">{upcomingShift ? formatHours(upcomingShift.paidMinutes) : '0h'}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[8px] md:text-[9px] uppercase font-black opacity-60 tracking-wider">Dự kiến</span>
+                <span className="text-xs md:text-sm font-black whitespace-nowrap">{Math.round(upcomingShift?.salary || 0).toLocaleString()}₫</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Quick Stats */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="col-span-12 md:col-span-3 row-span-2 bg-surface-900 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 text-white flex flex-col justify-between shadow-2xl">
+          <div>
+            <p className="text-[9px] md:text-[10px] uppercase font-black text-surface-500 mb-3 md:mb-4 tracking-[0.2em]">Tổng quan</p>
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex justify-between items-center group">
+                <span className="text-surface-400 text-xs md:text-sm font-medium group-hover:text-white transition-colors">Tổng số giờ</span>
+                <span className="font-black text-lg md:text-xl">{formatHours(stats.totalPaidMin)}</span>
+              </div>
+              <div className="flex justify-between items-center group">
+                <span className="text-surface-400 text-xs md:text-sm font-medium group-hover:text-white transition-colors">Số ca làm</span>
+                <span className="font-black text-lg md:text-xl">{stats.shiftCount}</span>
+              </div>
+              <div className="flex justify-between items-center group">
+                <span className="text-surface-400 text-xs md:text-sm font-medium group-hover:text-white transition-colors">Trung bình</span>
+                <span className="font-black text-lg md:text-xl">{formatHours(Math.round(stats.avgMin))}</span>
+              </div>
+            </div>
+          </div>
+          <div className="bg-surface-800/50 border border-surface-700 p-3 md:p-4 rounded-2xl flex items-center gap-3">
+            <div className="w-9 h-9 md:w-10 md:h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center text-xs md:text-sm font-black shadow-lg shadow-brand-500/20">
+              {(settings.ratePerHour / 1000).toFixed(1)}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[8px] md:text-[9px] font-black uppercase text-surface-500 tracking-wider">Hệ số lương</span>
+              <span className="text-[10px] md:text-xs font-bold text-surface-300">{(settings.ratePerHour / 1000).toFixed(1)}k / giờ</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Weekly Table */}
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+          className="col-span-12 md:col-span-8 row-span-4 bg-white rounded-[2rem] md:rounded-[2.5rem] border border-surface-200/60 p-6 md:p-8 shadow-sm flex flex-col">
+          <div className="flex justify-between items-center mb-6 md:mb-8">
+            <h3 className="text-[10px] md:text-sm font-black uppercase tracking-[0.15em] md:tracking-[0.2em] text-surface-400">Hiệu suất theo tuần</h3>
+            <div className="flex items-center gap-1.5 opacity-50">
+              <CalendarDays className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="text-[9px] md:text-[10px] font-bold">Tháng {format(currentMonth, 'MM/yyyy')}</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto flex-1 -mx-2 md:mx-0">
+            <table className="w-full min-w-[500px]">
+              <thead>
+                <tr className="text-left text-[9px] md:text-[10px] text-surface-400 uppercase tracking-widest border-b border-surface-50">
+                  <th className="pb-3 md:pb-4 font-black">Thời gian</th>
+                  <th className="pb-3 md:pb-4 font-black">Gross</th>
+                  <th className="pb-3 md:pb-4 font-black">Paid Net</th>
+                  <th className="pb-3 md:pb-4 font-black">Thu nhập</th>
+                  <th className="pb-3 md:pb-4 font-black text-right">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody className="text-xs md:text-sm divide-y divide-surface-50">
+                {stats.weeklyBreakdown.map((week, idx) => (
+                  <tr key={idx} className="group hover:bg-surface-50/50 transition-colors">
+                    <td className="py-4 md:py-5">
+                      <span className="block font-black text-surface-800">{week.name}</span>
+                      <span className="text-[9px] md:text-[10px] text-surface-400 font-bold uppercase">{week.count} ca làm</span>
+                    </td>
+                    <td className="py-4 md:py-5 font-medium text-surface-500">{formatHours(week.rawMin)}</td>
+                    <td className="py-4 md:py-5 text-brand-500 font-black tracking-tight">{formatHours(week.paidMin)}</td>
+                    <td className="py-4 md:py-5 font-bold tracking-tight text-surface-700">{Math.round(week.salary).toLocaleString()}₫</td>
+                    <td className="py-4 md:py-5 text-right">
+                      <span className={`px-2.5 md:px-3 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-wider ${
+                        idx === stats.weeklyBreakdown.length - 1 ? 'bg-brand-100 text-brand-600' : 'bg-green-100 text-green-600'
+                      }`}>
+                        {idx === stats.weeklyBreakdown.length - 1 ? 'Đang làm' : 'Hoàn tất'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {stats.weeklyBreakdown.length === 0 && (
+                  <tr><td colSpan={5} className="py-10 text-center text-surface-400 font-medium italic text-sm">Không có dữ liệu tháng này</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* Rules & Goal */}
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
+          className="col-span-12 md:col-span-4 row-span-4 bg-surface-50/80 rounded-[2rem] md:rounded-[2.5rem] border-2 border-dashed border-surface-200 p-6 md:p-8 flex flex-col">
+          <div className="flex items-center gap-2 mb-5 md:mb-6">
+            <AlertCircle className="w-4 h-4 text-surface-400" />
+            <h3 className="text-[9px] md:text-[10px] font-black uppercase text-surface-400 tracking-[0.2em]">Quy tắc trừ giờ nghỉ</h3>
+          </div>
+
+          <div className="space-y-3 md:space-y-4 flex-1">
+            {[
+              { label: 'Dưới 6 tiếng', badge: 'Full Pay', badgeColor: 'bg-green-100 text-green-600', desc: 'Giữ nguyên tổng thời gian làm.' },
+              { label: 'Từ 6h - 8h', badge: '-30 phút', badgeColor: 'bg-orange-100 text-orange-600', desc: 'Trừ 30 phút nghỉ trưa/giải lao.' },
+              { label: 'Trên 8 tiếng', badge: '-1 tiếng', badgeColor: 'bg-rose-100 text-rose-600', desc: 'Trừ 1 giờ nghỉ cho ca dài.' },
+            ].map(rule => (
+              <div key={rule.label} className="bg-white p-4 md:p-5 rounded-2xl md:rounded-3xl border border-surface-100 shadow-sm transition-transform hover:scale-[1.02]">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs md:text-sm font-black tracking-tight">{rule.label}</span>
+                  <span className={`text-[8px] md:text-[9px] ${rule.badgeColor} px-2 py-0.5 rounded-lg font-black uppercase`}>{rule.badge}</span>
+                </div>
+                <p className="text-[9px] md:text-[10px] text-surface-400 font-medium">{rule.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-surface-200">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <span className="text-[10px] md:text-xs font-black text-surface-400 tracking-wider flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-brand-500" /> CẦN THÊM
+              </span>
+              <span className="text-xs md:text-sm font-black text-brand-500 tabular-nums">{hoursNeeded.toFixed(1)} Giờ</span>
+            </div>
+            <div className="text-center py-3 bg-white rounded-2xl border border-surface-100">
+              <span className="text-lg md:text-xl font-black text-surface-800">{Math.round(remainingToTarget).toLocaleString()}</span>
+              <span className="text-xs text-surface-400 font-bold ml-1">₫ còn lại</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <footer className="mt-8 md:mt-12 py-4 md:py-6 text-center text-[9px] md:text-[10px] font-black text-surface-300 uppercase tracking-[0.3em] md:tracking-[0.5em]">
+        WorkTrackify v2.0 • Auto Sync {settings.autoSyncMinutes > 0 ? `${settings.autoSyncMinutes}m` : 'Off'}
+      </footer>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/LoginScreen.tsx">
+import { useState } from 'react';
+import { Briefcase, Settings, X } from 'lucide-react';
+import { motion } from 'motion/react';
+import type { AppSettings } from '../google-api';
+
+interface Props {
+  onLogin: () => void;
+  settings: AppSettings;
+  onUpdateSettings: (s: AppSettings) => void;
+  error: string | null;
+}
+
+export default function LoginScreen({ onLogin, settings, onUpdateSettings, error }: Props) {
+  const [showSetup, setShowSetup] = useState(!settings.clientId);
+  const [clientId, setClientId] = useState(settings.clientId);
+
+  const handleSaveAndLogin = () => {
+    const updated = { ...settings, clientId };
+    onUpdateSettings(updated);
+    if (clientId) onLogin();
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-brand-50/30 to-surface-100 flex flex-col items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl shadow-brand-200/30 p-10 text-center border border-surface-100"
+      >
+        <div className="w-20 h-20 bg-gradient-to-br from-brand-400 to-brand-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-brand-300/40">
+          <Briefcase className="w-10 h-10 text-white" />
+        </div>
+        <h1 className="text-4xl font-black text-surface-900 mb-2 tracking-tight">WorkTrackify</h1>
+        <p className="text-surface-500 mb-8 leading-relaxed text-sm">
+          Theo dõi giờ làm & tính lương tự động từ Google Calendar.
+        </p>
+
+        {error && (
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-medium">
+            {error}
+          </div>
+        )}
+
+        {showSetup ? (
+          <div className="text-left space-y-4">
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">
+                Google OAuth Client ID *
+              </label>
+              <input
+                type="text"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                placeholder="xxxxxx.apps.googleusercontent.com"
+                className="w-full py-3 px-4 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+              />
+              <p className="mt-2 text-[10px] text-surface-400">
+                Tạo tại{' '}
+                <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="text-brand-500 underline">
+                  Google Cloud Console
+                </a>
+                . Chọn "Web application", thêm Authorized JavaScript origins là URL deploy của bạn.
+              </p>
+            </div>
+            <button
+              onClick={handleSaveAndLogin}
+              disabled={!clientId}
+              className="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-2xl font-bold hover:from-brand-600 hover:to-brand-700 transition-all shadow-lg shadow-brand-300/30 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Lưu & Kết nối Google
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={onLogin}
+              className="w-full flex items-center justify-center gap-3 bg-white border border-surface-200 py-4 px-6 rounded-2xl font-bold text-surface-700 hover:bg-surface-50 transition-all shadow-lg active:scale-[0.98]"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+              </svg>
+              Kết nối Google Calendar
+            </button>
+            <button
+              onClick={() => setShowSetup(true)}
+              className="mt-4 flex items-center justify-center gap-2 text-xs text-surface-400 hover:text-surface-600 transition-colors mx-auto"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Đổi Client ID
+            </button>
+          </>
+        )}
+
+        <div className="mt-10 pt-8 border-t border-surface-100 flex justify-center gap-8 opacity-60">
+          <div className="text-center">
+            <span className="block text-xl font-black text-surface-900">100%</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Client-side</span>
+          </div>
+          <div className="w-px h-10 bg-surface-200" />
+          <div className="text-center">
+            <span className="block text-xl font-black text-surface-900">Auto</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-surface-400">Sync</span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/SettingsPanel.tsx">
+import { useState } from 'react';
+import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import type { AppSettings, GoogleUser } from '../google-api';
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  settings: AppSettings;
+  onUpdate: (s: AppSettings) => void;
+  user: GoogleUser | null;
+  onLogout: () => void;
+}
+
+export default function SettingsPanel({ open, onClose, settings, onUpdate, user, onLogout }: Props) {
+  const [local, setLocal] = useState(settings);
+  const [keywordInput, setKeywordInput] = useState('');
+
+  const save = () => { onUpdate(local); onClose(); };
+  const set = (key: keyof AppSettings, val: any) => setLocal({ ...local, [key]: val });
+
+  const addKeyword = () => {
+    const kw = keywordInput.trim();
+    if (kw && !local.filterKeywords.includes(kw)) {
+      set('filterKeywords', [...local.filterKeywords, kw]);
+      setKeywordInput('');
+    }
+  };
+
+  const removeKeyword = (kw: string) => {
+    set('filterKeywords', local.filterKeywords.filter(k => k !== kw));
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 overflow-y-auto"
+          >
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-xl font-black tracking-tight text-surface-900">Cài đặt</h2>
+                <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-surface-100 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {user && (
+                <div className="flex items-center gap-3 p-4 bg-surface-50 rounded-2xl mb-8 border border-surface-100">
+                  <img src={user.picture} alt="" className="w-10 h-10 rounded-full" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-surface-800 truncate">{user.name}</p>
+                    <p className="text-xs text-surface-400 truncate">{user.email}</p>
+                  </div>
+                  <button onClick={onLogout} className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors whitespace-nowrap">
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">Lương / giờ (VNĐ)</label>
+                  <input type="number" value={local.ratePerHour} onChange={e => set('ratePerHour', Number(e.target.value))}
+                    className="w-full py-3 px-4 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">Mục tiêu lương tháng (VNĐ)</label>
+                  <input type="number" value={local.targetSalary} onChange={e => set('targetSalary', Number(e.target.value))}
+                    className="w-full py-3 px-4 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">Auto-sync (phút, 0 = tắt)</label>
+                  <input type="number" value={local.autoSyncMinutes} onChange={e => set('autoSyncMinutes', Number(e.target.value))} min={0} max={60}
+                    className="w-full py-3 px-4 bg-surface-50 border border-surface-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">Google Client ID</label>
+                  <input type="text" value={local.clientId} onChange={e => set('clientId', e.target.value)}
+                    className="w-full py-3 px-4 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">
+                    Từ khóa lọc sự kiện
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {local.filterKeywords.map(kw => (
+                      <span key={kw} className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-100 text-brand-700 rounded-lg text-xs font-bold">
+                        {kw}
+                        <button onClick={() => removeKeyword(kw)} className="hover:text-red-500 transition-colors">×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="text" value={keywordInput} onChange={e => setKeywordInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addKeyword()}
+                      placeholder="Thêm từ khóa..."
+                      className="flex-1 py-2.5 px-4 bg-surface-50 border border-surface-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                    <button onClick={addKeyword} className="px-4 py-2.5 bg-surface-900 text-white rounded-xl text-sm font-bold hover:bg-surface-800 transition-colors">+</button>
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={save}
+                className="w-full mt-8 py-4 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-2xl font-bold hover:from-brand-600 hover:to-brand-700 transition-all shadow-lg shadow-brand-300/30 active:scale-[0.98]">
+                Lưu cài đặt
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+</file>
+
+<file path="src/google-api.ts">
+/**
+ * Google OAuth & Calendar API - Client-side only
+ * Uses Google Identity Services (GIS) for OAuth2
+ * Calls Google Calendar REST API directly with access tokens
+ */
+
+const SCOPES = [
+  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/userinfo.profile',
+  'https://www.googleapis.com/auth/userinfo.email',
+].join(' ');
+
+const CALENDAR_API_BASE = 'https://www.googleapis.com/calendar/v3';
+const USERINFO_API = 'https://www.googleapis.com/oauth2/v3/userinfo';
+
+// Storage keys
+const STORAGE_TOKEN_KEY = 'wt_google_tokens';
+const STORAGE_USER_KEY = 'wt_google_user';
+const STORAGE_SETTINGS_KEY = 'wt_settings';
+
+// ============= Types =============
+
+export interface GoogleTokens {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope: string;
+  /** Timestamp (ms) when token was obtained */
+  obtained_at: number;
+}
+
+export interface GoogleUser {
+  email: string;
+  name: string;
+  picture: string;
+}
+
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  start: { dateTime?: string; date?: string };
+  end: { dateTime?: string; date?: string };
+  status: string;
+  colorId?: string;
+  description?: string;
+}
+
+export interface AppSettings {
+  ratePerHour: number;
+  targetSalary: number;
+  /** Event filter keywords (case-insensitive) — events matching any keyword are included */
+  filterKeywords: string[];
+  /** Google OAuth Client ID */
+  clientId: string;
+  /** Auto-sync interval in minutes (0 = off) */
+  autoSyncMinutes: number;
+}
+
+// ============= Default Settings =============
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  ratePerHour: 25500,
+  targetSalary: 4000000,
+  filterKeywords: ['💼', 'work', 'timezone pac'],
+  clientId: '',
+  autoSyncMinutes: 5,
+};
+
+// ============= Storage Helpers =============
+
+export function loadTokens(): GoogleTokens | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_TOKEN_KEY);
+    if (!raw) return null;
+    const tokens: GoogleTokens = JSON.parse(raw);
+    // Check if token is expired (with 5min buffer)
+    const expiresAt = tokens.obtained_at + tokens.expires_in * 1000;
+    if (Date.now() > expiresAt - 5 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_TOKEN_KEY);
+      return null;
+    }
+    return tokens;
+  } catch {
+    return null;
+  }
+}
+
+export function saveTokens(tokens: GoogleTokens): void {
+  localStorage.setItem(STORAGE_TOKEN_KEY, JSON.stringify(tokens));
+}
+
+export function clearTokens(): void {
+  localStorage.removeItem(STORAGE_TOKEN_KEY);
+  localStorage.removeItem(STORAGE_USER_KEY);
+}
+
+export function loadUser(): GoogleUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveUser(user: GoogleUser): void {
+  localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+}
+
+export function loadSettings(): AppSettings {
+  try {
+    const raw = localStorage.getItem(STORAGE_SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export function saveSettings(settings: AppSettings): void {
+  localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// ============= Google Identity Services OAuth =============
+
+/**
+ * Initiates Google OAuth2 login using Google Identity Services.
+ * Opens a popup for the user to select their Google account.
+ */
+export function initiateGoogleLogin(clientId: string): Promise<GoogleTokens> {
+  return new Promise((resolve, reject) => {
+    if (!clientId) {
+      reject(new Error('Google Client ID chưa được cấu hình. Vui lòng nhập Client ID trong Settings.'));
+      return;
+    }
+
+    const google = (window as any).google;
+    if (!google?.accounts?.oauth2) {
+      reject(new Error('Google Identity Services chưa được tải. Vui lòng refresh trang.'));
+      return;
+    }
+
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: SCOPES,
+      prompt: 'select_account',
+      callback: (response: any) => {
+        if (response.error) {
+          reject(new Error(response.error_description || response.error));
+          return;
+        }
+        const tokens: GoogleTokens = {
+          access_token: response.access_token,
+          token_type: response.token_type,
+          expires_in: response.expires_in,
+          scope: response.scope,
+          obtained_at: Date.now(),
+        };
+        saveTokens(tokens);
+        resolve(tokens);
+      },
+      error_callback: (error: any) => {
+        reject(new Error(error.message || 'Đăng nhập bị hủy.'));
+      },
+    });
+
+    tokenClient.requestAccessToken();
+  });
+}
+
+// ============= API Calls =============
+
+async function apiCall<T>(url: string, token: string): Promise<T> {
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearTokens();
+      throw new Error('TOKEN_EXPIRED');
+    }
+    const text = await res.text();
+    throw new Error(`API Error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+/**
+ * Fetch user profile information
+ */
+export async function fetchUserInfo(token: string): Promise<GoogleUser> {
+  const data = await apiCall<any>(USERINFO_API, token);
+  const user: GoogleUser = {
+    email: data.email,
+    name: data.name,
+    picture: data.picture,
+  };
+  saveUser(user);
+  return user;
+}
+
+/**
+ * Fetch calendar events for a specific month
+ */
+export async function fetchCalendarEvents(
+  token: string,
+  year: number,
+  month: number // 0-indexed
+): Promise<CalendarEvent[]> {
+  const timeMin = new Date(year, month, 1).toISOString();
+  const timeMax = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+  const params = new URLSearchParams({
+    calendarId: 'primary',
+    timeMin,
+    timeMax,
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '250',
+  });
+
+  const data = await apiCall<{ items?: CalendarEvent[] }>(
+    `${CALENDAR_API_BASE}/calendars/primary/events?${params}`,
+    token
+  );
+
+  return data.items || [];
+}
+</file>
+
+<file path="src/index.css">
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --color-brand-50: oklch(0.97 0.02 350);
+  --color-brand-100: oklch(0.93 0.04 350);
+  --color-brand-200: oklch(0.86 0.08 350);
+  --color-brand-300: oklch(0.76 0.14 350);
+  --color-brand-400: oklch(0.66 0.20 350);
+  --color-brand-500: oklch(0.55 0.24 345);
+  --color-brand-600: oklch(0.48 0.22 345);
+  --color-brand-700: oklch(0.40 0.18 345);
+
+  --color-surface-50: oklch(0.985 0.002 265);
+  --color-surface-100: oklch(0.965 0.004 265);
+  --color-surface-200: oklch(0.925 0.006 265);
+  --color-surface-300: oklch(0.87 0.01 265);
+  --color-surface-400: oklch(0.7 0.015 265);
+  --color-surface-500: oklch(0.55 0.02 265);
+  --color-surface-600: oklch(0.45 0.02 265);
+  --color-surface-700: oklch(0.35 0.02 265);
+  --color-surface-800: oklch(0.25 0.02 265);
+  --color-surface-900: oklch(0.18 0.02 265);
+  --color-surface-950: oklch(0.12 0.02 265);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-300);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-400);
+}
+
+/* Number input spinner removal */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glass card effects */
+.glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Pulse glow for brand accents */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.55 0.24 345 / 0.4); }
+  50% { box-shadow: 0 0 16px 4px oklch(0.55 0.24 345 / 0.15); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+</file>
+
+<file path="src/main.tsx">
+import {StrictMode} from 'react';
+import {createRoot} from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+);
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}
+</file>
+
+<file path="vite.config.ts">
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    },
+  },
+  // For GitHub Pages: set base to repo name (update if different)
+  // If deploying to https://<user>.github.io/<repo>/, set base: '/<repo>/'
+  // If deploying to custom domain or root, use base: '/'
+  base: './',
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+  },
+});
+</file>
+
+</files>
