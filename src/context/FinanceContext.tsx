@@ -90,11 +90,12 @@ export function FinanceProvider({ children, year, month }: ProviderProps) {
     const totalFixedExpenses = feHook.getTotalForMonth(currentMonth);
     const totalManualExpenses = txHook.totalExpense;
     const savingsGoal = fsHook.settings.savingsGoal;
+    const totalPlanned = peHook.totalPlanned;
 
-    return totalIncome - totalFixedExpenses - totalManualExpenses - savingsGoal;
+    return totalIncome - totalFixedExpenses - totalManualExpenses - totalPlanned - savingsGoal;
   }, [
     estimatedMonthlySalary, txHook.totalIncome, txHook.totalExpense,
-    feHook, currentMonth, fsHook.settings.savingsGoal,
+    feHook, currentMonth, fsHook.settings.savingsGoal, peHook.totalPlanned,
   ]);
 
   const value: FinanceContextValue = {

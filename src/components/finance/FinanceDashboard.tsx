@@ -132,7 +132,8 @@ export default function FinanceDashboard() {
           </h2>
           <p className="text-[10px] text-surface-500 mt-2 font-medium leading-relaxed">
             = Lương ({Math.round(estimatedMonthlySalary).toLocaleString()}) + Thu nhập ({Math.round(totalManualIncome).toLocaleString()})
-            <br />− CĐ ({Math.round(totalFixedExpenses).toLocaleString()}) − Chi tiêu ({Math.round(totalManualExpense).toLocaleString()}) − TK ({Math.round(financeSettings.savingsGoal).toLocaleString()})
+            <br />− CĐ ({Math.round(totalFixedExpenses).toLocaleString()}) − Chi tiêu ({Math.round(totalManualExpense).toLocaleString()})
+            <br />− Chuẩn bị chi ({Math.round(totalPlanned).toLocaleString()}) − TK ({Math.round(financeSettings.savingsGoal).toLocaleString()})
           </p>
           <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/10 rounded-full blur-3xl" />
         </motion.div>
