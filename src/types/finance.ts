@@ -41,6 +41,18 @@ export interface WishlistItem {
   createdAt: number;
 }
 
+// ============= Planned Expenses (Chuẩn bị chi) =============
+
+export interface PlannedExpense {
+  id: string;
+  name: string;
+  amount: number;
+  emoji: string;
+  category: string;
+  note: string;
+  createdAt: number;
+}
+
 // ============= App Finance Settings =============
 
 export interface FinanceSettings {

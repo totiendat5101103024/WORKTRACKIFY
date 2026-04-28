@@ -3,12 +3,12 @@
  * Shows Safe to Spend, transaction list, fixed expenses, wishlist, and spending breakdown.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Plus, TrendingUp, TrendingDown, Shield, Wallet,
   Receipt, Trash2, ChevronLeft, ChevronRight, Clock,
-  Target, PiggyBank
+  Target, PiggyBank, ShoppingBag, CheckCircle2, Circle
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -18,6 +18,7 @@ import TransactionModal from './TransactionModal';
 import FixedExpenseModal from './FixedExpenseModal';
 import WishlistModal from './WishlistModal';
 import AddFundsModal from './AddFundsModal';
+import PlannedExpenseModal from './PlannedExpenseModal';
 import type { Transaction } from '../../types/finance';
 
 export default function FinanceDashboard() {
@@ -29,6 +30,7 @@ export default function FinanceDashboard() {
     financeSettings, safeToSpend,
     wishlistItems, addWishlistItem, addWishlistFunds, removeWishlistItem,
     wishlistTotalSaved, wishlistTotalTarget,
+    plannedExpenses, addPlannedExpense, removePlannedExpense, totalPlanned,
   } = useFinance();
 
   const { estimatedMonthlySalary, currentMonth, prevMonth, nextMonth } = useCalendar();
@@ -36,10 +38,33 @@ export default function FinanceDashboard() {
   const [showTxModal, setShowTxModal] = useState(false);
   const [showFEModal, setShowFEModal] = useState(false);
   const [showWLModal, setShowWLModal] = useState(false);
+  const [showPEModal, setShowPEModal] = useState(false);
+  const [tickingId, setTickingId] = useState<string | null>(null);
   const [fundTarget, setFundTarget] = useState<{ id: string; name: string; emoji: string; remaining: number } | null>(null);
 
   const totalFixedExpenses = getFixedExpensesTotal(currentMonth);
   const totalIncome = estimatedMonthlySalary + totalManualIncome;
+
+  // Tick a planned expense → create actual transaction + remove from list
+  const handleTickPlanned = useCallback(async (pe: typeof plannedExpenses[0]) => {
+    if (tickingId === pe.id) return;
+    setTickingId(pe.id);
+    try {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      await addTransaction({
+        amount: pe.amount,
+        date: dateStr,
+        category: pe.category,
+        categoryEmoji: pe.emoji,
+        type: 'expense',
+        note: pe.note || pe.name,
+      });
+      await removePlannedExpense(pe.id);
+    } finally {
+      setTickingId(null);
+    }
+  }, [addTransaction, removePlannedExpense, tickingId]);
 
   // Group transactions by date
   const groupedTx = useMemo(() => {
@@ -322,6 +347,101 @@ export default function FinanceDashboard() {
           )}
         </motion.div>
 
+        {/* Planned Expenses — Khoản chuẩn bị chi */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.23 }}
+          className="col-span-12 bg-white rounded-[2rem] border border-surface-200/60 p-5 md:p-6 shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-amber-500" />
+              <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-surface-400">Khoản chuẩn bị chi</h3>
+              {plannedExpenses.length > 0 && (
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black">{plannedExpenses.length}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {plannedExpenses.length > 0 && (
+                <span className="text-[10px] font-black text-amber-600">{totalPlanned.toLocaleString()}₫</span>
+              )}
+              <button onClick={() => setShowPEModal(true)} className="text-[10px] font-bold text-brand-500 hover:text-brand-600 transition-colors">+ Thêm</button>
+            </div>
+          </div>
+
+          {plannedExpenses.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <ShoppingBag className="w-6 h-6 text-amber-200" />
+              </div>
+              <p className="text-surface-400 text-xs font-medium">Chưa có khoản nào cần chi</p>
+              <p className="text-surface-300 text-[10px] mt-1">Nhấn + để lên kế hoạch chi tiêu</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {plannedExpenses.map(pe => (
+                <AnimatePresence key={pe.id}>
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 40, scale: 0.95 }}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-amber-50/60 border border-amber-100 group"
+                  >
+                    {/* Tick button */}
+                    <button
+                      onClick={() => handleTickPlanned(pe)}
+                      disabled={tickingId === pe.id}
+                      className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 hover:bg-amber-100 disabled:opacity-50"
+                      title="Tick để chuyển sang đã chi tiêu"
+                    >
+                      {tickingId === pe.id ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                          className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full"
+                        />
+                      ) : (
+                        <Circle className="w-5 h-5 text-amber-400 group-hover:text-amber-500 transition-colors" />
+                      )}
+                    </button>
+
+                    {/* Emoji badge */}
+                    <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center text-sm shrink-0">
+                      {pe.emoji}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-bold text-surface-800 block truncate">{pe.name}</span>
+                      {pe.note && <span className="text-[10px] text-surface-400 block truncate">{pe.note}</span>}
+                      <span className="text-[9px] text-amber-600 font-bold">{pe.category}</span>
+                    </div>
+
+                    {/* Amount */}
+                    <span className="text-sm font-black text-amber-700 tabular-nums shrink-0">
+                      -{pe.amount.toLocaleString()}₫
+                    </span>
+
+                    {/* Delete */}
+                    <button
+                      onClick={async (e) => { e.stopPropagation(); await removePlannedExpense(pe.id); }}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 active:scale-90 opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </motion.div>
+                </AnimatePresence>
+              ))}
+
+              {/* Hint */}
+              <div className="flex items-center gap-2 pt-2 border-t border-amber-100">
+                <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+                <p className="text-[10px] text-amber-500 font-medium">Tick vào ô tròn để chuyển sang "Đã chi tiêu"</p>
+              </div>
+            </div>
+          )}
+        </motion.div>
+
         {/* Transaction List */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
@@ -395,6 +515,11 @@ export default function FinanceDashboard() {
         open={showWLModal}
         onClose={() => setShowWLModal(false)}
         onSave={addWishlistItem}
+      />
+      <PlannedExpenseModal
+        open={showPEModal}
+        onClose={() => setShowPEModal(false)}
+        onSave={addPlannedExpense}
       />
       {fundTarget && (
         <AddFundsModal

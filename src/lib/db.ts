@@ -6,12 +6,13 @@
 
 import { collection, getDocs, setDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Transaction, FixedExpense, WishlistItem } from '../types/finance';
+import type { Transaction, FixedExpense, WishlistItem, PlannedExpense } from '../types/finance';
 
 const COLLECTIONS = {
   TRANSACTIONS: 'transactions',
   FIXED_EXPENSES: 'fixedExpenses',
   WISHLIST: 'wishlist',
+  PLANNED_EXPENSES: 'plannedExpenses',
 } as const;
 
 // ============= Transactions =============
@@ -77,6 +78,21 @@ export async function deleteWishlistItem(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTIONS.WISHLIST, id));
 }
 
+// ============= Planned Expenses =============
+
+export async function getAllPlannedExpenses(): Promise<PlannedExpense[]> {
+  const snapshot = await getDocs(collection(db, COLLECTIONS.PLANNED_EXPENSES));
+  return snapshot.docs.map(doc => doc.data() as PlannedExpense);
+}
+
+export async function addPlannedExpense(item: PlannedExpense): Promise<void> {
+  await setDoc(doc(db, COLLECTIONS.PLANNED_EXPENSES, item.id), item);
+}
+
+export async function deletePlannedExpense(id: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTIONS.PLANNED_EXPENSES, id));
+}
+
 // ============= Bulk / Utility =============
 
 export async function clearAllData(): Promise<void> {
@@ -90,6 +106,9 @@ export async function clearAllData(): Promise<void> {
   
   const wls = await getDocs(collection(db, COLLECTIONS.WISHLIST));
   wls.forEach(d => batch.delete(d.ref));
+
+  const pes = await getDocs(collection(db, COLLECTIONS.PLANNED_EXPENSES));
+  pes.forEach(d => batch.delete(d.ref));
   
   await batch.commit();
 }

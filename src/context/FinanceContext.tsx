@@ -9,8 +9,9 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useFixedExpenses } from '../hooks/useFixedExpenses';
 import { useWishlist } from '../hooks/useWishlist';
 import { useFinanceSettings } from '../hooks/useFinanceSettings';
+import { usePlannedExpenses } from '../hooks/usePlannedExpenses';
 import { useCalendar } from './CalendarContext';
-import type { Transaction, FixedExpense, WishlistItem, FinanceSettings } from '../types/finance';
+import type { Transaction, FixedExpense, WishlistItem, FinanceSettings, PlannedExpense } from '../types/finance';
 
 interface FinanceContextValue {
   // Transactions
@@ -43,6 +44,14 @@ interface FinanceContextValue {
   wishlistTotalSaved: number;
   wishlistTotalTarget: number;
 
+  // Planned Expenses (Khoản chuẩn bị chi)
+  plannedExpenses: PlannedExpense[];
+  plannedExpensesLoading: boolean;
+  addPlannedExpense: (data: Omit<PlannedExpense, 'id' | 'createdAt'>) => Promise<PlannedExpense>;
+  removePlannedExpense: (id: string) => Promise<void>;
+  refreshPlannedExpenses: () => Promise<void>;
+  totalPlanned: number;
+
   // Finance Settings
   financeSettings: FinanceSettings;
   updateFinanceSettings: (partial: Partial<FinanceSettings>) => void;
@@ -70,6 +79,7 @@ export function FinanceProvider({ children, year, month }: ProviderProps) {
   const feHook = useFixedExpenses();
   const wlHook = useWishlist();
   const fsHook = useFinanceSettings();
+  const peHook = usePlannedExpenses();
 
   // Bridge: read estimated salary from CalendarContext
   const { estimatedMonthlySalary, currentMonth } = useCalendar();
@@ -117,6 +127,14 @@ export function FinanceProvider({ children, year, month }: ProviderProps) {
     removeWishlistItem: wlHook.remove,
     wishlistTotalSaved: wlHook.totalSaved,
     wishlistTotalTarget: wlHook.totalTarget,
+
+    // Planned Expenses
+    plannedExpenses: peHook.items,
+    plannedExpensesLoading: peHook.loading,
+    addPlannedExpense: peHook.add,
+    removePlannedExpense: peHook.remove,
+    refreshPlannedExpenses: peHook.refresh,
+    totalPlanned: peHook.totalPlanned,
 
     // Settings
     financeSettings: fsHook.settings,
