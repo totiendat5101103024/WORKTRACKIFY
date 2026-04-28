@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, PiggyBank } from 'lucide-react';
+import { formatAmountDisplay, parseAmountDisplay } from '../../lib/formatAmount';
 
 interface Props {
   open: boolean;
@@ -30,7 +31,7 @@ export default function AddFundsModal({ open, onClose, onSave, itemName, itemEmo
   const quickAmounts = [50000, 100000, 200000, 500000];
 
   const handleSubmit = async () => {
-    const num = parseFloat(amount);
+    const num = parseAmountDisplay(amount);
     if (!num || num <= 0) return;
     setSaving(true);
     try {
@@ -85,9 +86,9 @@ export default function AddFundsModal({ open, onClose, onSave, itemName, itemEmo
                 {quickAmounts.map(qa => (
                   <button
                     key={qa}
-                    onClick={() => setAmount(qa.toString())}
+                    onClick={() => setAmount(qa.toLocaleString('en-US'))}
                     className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                      amount === qa.toString()
+                      amount === qa.toLocaleString('en-US')
                         ? 'bg-brand-100 border-2 border-brand-300 text-brand-700'
                         : 'bg-surface-50 border border-surface-200 text-surface-600 hover:bg-surface-100'
                     }`}
@@ -102,9 +103,10 @@ export default function AddFundsModal({ open, onClose, onSave, itemName, itemEmo
                 <div className="relative">
                   <input
                     ref={inputRef}
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={amount}
-                    onChange={e => setAmount(e.target.value)}
+                    onChange={e => setAmount(formatAmountDisplay(e.target.value))}
                     placeholder="Nhập số tiền..."
                     className="w-full py-3 px-4 pr-10 bg-surface-50 border border-surface-200 rounded-xl text-lg font-black focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   />
@@ -114,7 +116,7 @@ export default function AddFundsModal({ open, onClose, onSave, itemName, itemEmo
 
               <button
                 onClick={handleSubmit}
-                disabled={saving || !parseFloat(amount)}
+                disabled={saving || !parseAmountDisplay(amount)}
                 className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-200/40 active:scale-[0.98] disabled:opacity-50 transition-all"
               >
                 {saving ? 'Đang lưu...' : '🐷 Thêm vào quỹ'}

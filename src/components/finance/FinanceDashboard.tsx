@@ -7,15 +7,15 @@ import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Plus, TrendingUp, TrendingDown, Shield, Wallet,
-  Receipt, Trash2, ChevronLeft, ChevronRight, Clock,
-  Target, PiggyBank, ShoppingBag, CheckCircle2, Circle
+  Trash2, ChevronLeft, ChevronRight, Clock,
+  Target, PiggyBank, ShoppingBag, CheckCircle2, Circle, Pin
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useFinance } from '../../context/FinanceContext';
 import { useCalendar } from '../../context/CalendarContext';
 import TransactionModal from './TransactionModal';
-import FixedExpenseModal from './FixedExpenseModal';
+
 import WishlistModal from './WishlistModal';
 import AddFundsModal from './AddFundsModal';
 import PlannedExpenseModal from './PlannedExpenseModal';
@@ -25,27 +25,26 @@ export default function FinanceDashboard() {
   const {
     transactions, addTransaction, removeTransaction,
     totalManualIncome, totalManualExpense,
-    fixedExpenses, addFixedExpense, removeFixedExpense,
-    toggleFixedExpensePaid, getFixedExpensesTotal, isFixedExpensePaid,
     financeSettings, safeToSpend,
     wishlistItems, addWishlistItem, addWishlistFunds, removeWishlistItem,
     wishlistTotalSaved, wishlistTotalTarget,
-    plannedExpenses, addPlannedExpense, removePlannedExpense, totalPlanned,
+    plannedExpenses, addPlannedExpense, removePlannedExpense,
+    tickPlannedExpense, togglePinPlanned, getPlannedForMonth, getPlannedTotalForMonth,
   } = useFinance();
 
   const { estimatedMonthlySalary, currentMonth, prevMonth, nextMonth } = useCalendar();
 
   const [showTxModal, setShowTxModal] = useState(false);
-  const [showFEModal, setShowFEModal] = useState(false);
   const [showWLModal, setShowWLModal] = useState(false);
   const [showPEModal, setShowPEModal] = useState(false);
   const [tickingId, setTickingId] = useState<string | null>(null);
   const [fundTarget, setFundTarget] = useState<{ id: string; name: string; emoji: string; remaining: number } | null>(null);
 
-  const totalFixedExpenses = getFixedExpensesTotal(currentMonth);
+  const plannedForMonth = getPlannedForMonth(currentMonth);
+  const totalPlanned = getPlannedTotalForMonth(currentMonth);
   const totalIncome = estimatedMonthlySalary + totalManualIncome;
 
-  // Tick a planned expense → create actual transaction + remove from list
+  // Tick a planned expense → create actual transaction, then tick/delete via hook
   const handleTickPlanned = useCallback(async (pe: typeof plannedExpenses[0]) => {
     if (tickingId === pe.id) return;
     setTickingId(pe.id);
@@ -60,11 +59,11 @@ export default function FinanceDashboard() {
         type: 'expense',
         note: pe.note || pe.name,
       });
-      await removePlannedExpense(pe.id);
+      await tickPlannedExpense(pe.id, currentMonth);
     } finally {
       setTickingId(null);
     }
-  }, [addTransaction, removePlannedExpense, tickingId]);
+  }, [addTransaction, tickPlannedExpense, currentMonth, tickingId]);
 
   // Group transactions by date
   const groupedTx = useMemo(() => {
@@ -132,8 +131,8 @@ export default function FinanceDashboard() {
           </h2>
           <p className="text-[10px] text-surface-500 mt-2 font-medium leading-relaxed">
             = Lương ({Math.round(estimatedMonthlySalary).toLocaleString()}) + Thu nhập ({Math.round(totalManualIncome).toLocaleString()})
-            <br />− CĐ ({Math.round(totalFixedExpenses).toLocaleString()}) − Chi tiêu ({Math.round(totalManualExpense).toLocaleString()})
-            <br />− Chuẩn bị chi ({Math.round(totalPlanned).toLocaleString()}) − TK ({Math.round(financeSettings.savingsGoal).toLocaleString()})
+            <br />− Chi tiêu ({Math.round(totalManualExpense).toLocaleString()}) − Chuẩn bị chi ({Math.round(totalPlanned).toLocaleString()})
+            <br />− Tiết kiệm ({Math.round(financeSettings.savingsGoal).toLocaleString()})
           </p>
           <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/10 rounded-full blur-3xl" />
         </motion.div>
@@ -168,10 +167,10 @@ export default function FinanceDashboard() {
             <span className="text-[9px] font-black uppercase tracking-widest text-surface-400">Tổng chi</span>
           </div>
           <p className="text-xl md:text-2xl font-black text-red-500 tracking-tight">
-            {Math.round(totalManualExpense + totalFixedExpenses).toLocaleString()}<span className="text-xs ml-0.5 opacity-40">₫</span>
+            {Math.round(totalManualExpense).toLocaleString()}<span className="text-xs ml-0.5 opacity-40">₫</span>
           </p>
           <p className="text-[9px] text-surface-400 mt-1 font-bold">
-            CĐ: {Math.round(totalFixedExpenses).toLocaleString()} • Biến đổi: {Math.round(totalManualExpense).toLocaleString()}
+            Đã chi: {Math.round(totalManualExpense).toLocaleString()}
           </p>
         </motion.div>
 
@@ -208,55 +207,6 @@ export default function FinanceDashboard() {
           </motion.div>
         )}
 
-        {/* Fixed Expenses */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className={`col-span-12 ${spendingByCategory.length > 0 ? 'md:col-span-4' : 'md:col-span-5'} bg-white rounded-[2rem] border border-surface-200/60 p-5 md:p-6 shadow-sm`}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-surface-400" />
-              <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-surface-400">Chi phí cố định</h3>
-            </div>
-            <button onClick={() => setShowFEModal(true)} className="text-[10px] font-bold text-brand-500 hover:text-brand-600 transition-colors">+ Thêm</button>
-          </div>
-
-          {fixedExpenses.length === 0 ? (
-            <p className="text-center text-surface-400 text-sm py-6 italic">Chưa có chi phí cố định</p>
-          ) : (
-            <div className="space-y-2">
-              {fixedExpenses.map(fe => {
-                const paid = isFixedExpensePaid(fe.id, currentMonth);
-                return (
-                  <div key={fe.id} className="flex items-center gap-3 p-3 rounded-2xl bg-surface-50 border border-surface-100">
-                    <button
-                      onClick={() => toggleFixedExpensePaid(fe.id, currentMonth)}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all shrink-0 ${
-                        paid ? 'bg-emerald-100 text-emerald-600 shadow-sm' : 'bg-surface-100 text-surface-400 hover:bg-brand-50'
-                      }`}
-                    >
-                      {paid ? '✅' : fe.emoji}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-sm font-bold ${paid ? 'line-through text-surface-400' : 'text-surface-800'}`}>{fe.name}</span>
-                    </div>
-                    <span className="text-sm font-black text-surface-600 shrink-0">{fe.amount.toLocaleString()}₫</span>
-                    <button
-                      onClick={async (e) => { e.stopPropagation(); await removeFixedExpense(fe.id); }}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 active:scale-90"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
-              <div className="flex justify-between items-center pt-2 border-t border-surface-100">
-                <span className="text-[10px] font-black uppercase text-surface-400">Tổng / tháng</span>
-                <span className="text-sm font-black text-surface-700">{Math.round(totalFixedExpenses).toLocaleString()}₫</span>
-              </div>
-            </div>
-          )}
-        </motion.div>
 
         {/* Wishlist / Savings Goals */}
         <motion.div
@@ -348,7 +298,7 @@ export default function FinanceDashboard() {
           )}
         </motion.div>
 
-        {/* Planned Expenses — Khoản chuẩn bị chi */}
+        {/* Planned Expenses — Khoản chuẩn bị chi (includes pinned recurring) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.23 }}
           className="col-span-12 bg-white rounded-[2rem] border border-surface-200/60 p-5 md:p-6 shadow-sm"
@@ -357,87 +307,102 @@ export default function FinanceDashboard() {
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-amber-500" />
               <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-surface-400">Khoản chuẩn bị chi</h3>
-              {plannedExpenses.length > 0 && (
-                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black">{plannedExpenses.length}</span>
+              {plannedForMonth.length > 0 && (
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black">{plannedForMonth.length}</span>
               )}
             </div>
             <div className="flex items-center gap-3">
-              {plannedExpenses.length > 0 && (
+              {plannedForMonth.length > 0 && (
                 <span className="text-[10px] font-black text-amber-600">{totalPlanned.toLocaleString()}₫</span>
               )}
               <button onClick={() => setShowPEModal(true)} className="text-[10px] font-bold text-brand-500 hover:text-brand-600 transition-colors">+ Thêm</button>
             </div>
           </div>
 
-          {plannedExpenses.length === 0 ? (
+          {plannedForMonth.length === 0 ? (
             <div className="text-center py-8">
               <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <ShoppingBag className="w-6 h-6 text-amber-200" />
               </div>
               <p className="text-surface-400 text-xs font-medium">Chưa có khoản nào cần chi</p>
-              <p className="text-surface-300 text-[10px] mt-1">Nhấn + để lên kế hoạch chi tiêu</p>
+              <p className="text-surface-300 text-[10px] mt-1">Nhấn + để thêm • 📌 Ghim để lặp lại hàng tháng</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {plannedExpenses.map(pe => (
-                <AnimatePresence key={pe.id}>
-                  <motion.div
-                    layout
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 40, scale: 0.95 }}
-                    className="flex items-center gap-3 p-3 rounded-2xl bg-amber-50/60 border border-amber-100 group"
-                  >
-                    {/* Tick button */}
-                    <button
-                      onClick={() => handleTickPlanned(pe)}
-                      disabled={tickingId === pe.id}
-                      className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 hover:bg-amber-100 disabled:opacity-50"
-                      title="Tick để chuyển sang đã chi tiêu"
-                    >
-                      {tickingId === pe.id ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-                          className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full"
-                        />
-                      ) : (
-                        <Circle className="w-5 h-5 text-amber-400 group-hover:text-amber-500 transition-colors" />
-                      )}
-                    </button>
-
-                    {/* Emoji badge */}
-                    <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center text-sm shrink-0">
-                      {pe.emoji}
+            <div>
+              {/* Pinned recurring group */}
+              {plannedForMonth.filter(p => p.isPinned).length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-surface-300 mb-2 flex items-center gap-1">
+                    <Pin className="w-3 h-3" /> Cố định hàng tháng
+                  </p>
+                  {plannedForMonth.filter(p => p.isPinned).map(pe => (
+                    <div key={pe.id} className="flex items-center gap-3 p-3 rounded-2xl bg-brand-50/50 border border-brand-100 group mb-2">
+                      <button onClick={() => handleTickPlanned(pe)} disabled={tickingId === pe.id}
+                        className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-brand-100 disabled:opacity-50 transition-all active:scale-90">
+                        {tickingId === pe.id
+                          ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full" />
+                          : <Circle className="w-5 h-5 text-brand-400 group-hover:text-brand-500 transition-colors" />}
+                      </button>
+                      <div className="w-9 h-9 bg-brand-100 rounded-xl flex items-center justify-center text-sm shrink-0">{pe.emoji}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold text-surface-800 truncate">{pe.name}</span>
+                          <Pin className="w-3 h-3 text-brand-400 shrink-0" />
+                        </div>
+                        {pe.note && <span className="text-[10px] text-surface-400 block truncate">{pe.note}</span>}
+                        <span className="text-[9px] text-brand-500 font-bold">{pe.category}</span>
+                      </div>
+                      <span className="text-sm font-black text-brand-700 tabular-nums shrink-0">-{pe.amount.toLocaleString()}₫</span>
+                      <button onClick={() => togglePinPlanned(pe.id)} title="Bỏ ghim"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-300 hover:text-amber-500 hover:bg-amber-50 transition-all shrink-0 active:scale-90 opacity-0 group-hover:opacity-100">
+                        <Pin className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={async (e) => { e.stopPropagation(); await removePlannedExpense(pe.id); }}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 active:scale-90 opacity-0 group-hover:opacity-100">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-bold text-surface-800 block truncate">{pe.name}</span>
-                      {pe.note && <span className="text-[10px] text-surface-400 block truncate">{pe.note}</span>}
-                      <span className="text-[9px] text-amber-600 font-bold">{pe.category}</span>
+              {/* Regular one-off items */}
+              {plannedForMonth.filter(p => !p.isPinned).length > 0 && (
+                <div>
+                  {plannedForMonth.filter(p => p.isPinned).length > 0 && (
+                    <p className="text-[9px] font-black uppercase tracking-widest text-surface-300 mb-2">Sắp chi</p>
+                  )}
+                  {plannedForMonth.filter(p => !p.isPinned).map(pe => (
+                    <div key={pe.id} className="flex items-center gap-3 p-3 rounded-2xl bg-amber-50/60 border border-amber-100 group mb-2">
+                      <button onClick={() => handleTickPlanned(pe)} disabled={tickingId === pe.id}
+                        className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-amber-100 disabled:opacity-50 transition-all active:scale-90">
+                        {tickingId === pe.id
+                          ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full" />
+                          : <Circle className="w-5 h-5 text-amber-400 group-hover:text-amber-500 transition-colors" />}
+                      </button>
+                      <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center text-sm shrink-0">{pe.emoji}</div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-bold text-surface-800 block truncate">{pe.name}</span>
+                        {pe.note && <span className="text-[10px] text-surface-400 block truncate">{pe.note}</span>}
+                        <span className="text-[9px] text-amber-600 font-bold">{pe.category}</span>
+                      </div>
+                      <span className="text-sm font-black text-amber-700 tabular-nums shrink-0">-{pe.amount.toLocaleString()}₫</span>
+                      <button onClick={() => togglePinPlanned(pe.id)} title="Ghim thành cố định"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-300 hover:text-brand-500 hover:bg-brand-50 transition-all shrink-0 active:scale-90 opacity-0 group-hover:opacity-100">
+                        <Pin className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={async (e) => { e.stopPropagation(); await removePlannedExpense(pe.id); }}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 active:scale-90 opacity-0 group-hover:opacity-100">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    {/* Amount */}
-                    <span className="text-sm font-black text-amber-700 tabular-nums shrink-0">
-                      -{pe.amount.toLocaleString()}₫
-                    </span>
-
-                    {/* Delete */}
-                    <button
-                      onClick={async (e) => { e.stopPropagation(); await removePlannedExpense(pe.id); }}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 active:scale-90 opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.div>
-                </AnimatePresence>
-              ))}
-
-              {/* Hint */}
               <div className="flex items-center gap-2 pt-2 border-t border-amber-100">
                 <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                <p className="text-[10px] text-amber-500 font-medium">Tick vào ô tròn để chuyển sang "Đã chi tiêu"</p>
+                <p className="text-[10px] text-amber-500 font-medium">Tick ○ để chuyển sang "Đã chi" • Hover để ghim/bỏ ghim 📌</p>
               </div>
             </div>
           )}
@@ -506,11 +471,6 @@ export default function FinanceDashboard() {
         open={showTxModal}
         onClose={() => setShowTxModal(false)}
         onSave={addTransaction}
-      />
-      <FixedExpenseModal
-        open={showFEModal}
-        onClose={() => setShowFEModal(false)}
-        onSave={addFixedExpense}
       />
       <WishlistModal
         open={showWLModal}

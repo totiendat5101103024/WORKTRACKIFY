@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Target } from 'lucide-react';
 import type { WishlistItem } from '../../types/finance';
+import { formatAmountDisplay, parseAmountDisplay } from '../../lib/formatAmount';
 
 interface Props {
   open: boolean;
@@ -32,7 +33,7 @@ export default function WishlistModal({ open, onClose, onSave }: Props) {
   }, [open]);
 
   const handleSubmit = async () => {
-    const numTarget = parseFloat(target);
+    const numTarget = parseAmountDisplay(target);
     if (!name.trim() || !numTarget || numTarget <= 0) return;
     setSaving(true);
     try {
@@ -117,9 +118,10 @@ export default function WishlistModal({ open, onClose, onSave }: Props) {
                 <label className="block text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">Số tiền cần</label>
                 <div className="relative">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={target}
-                    onChange={e => setTarget(e.target.value)}
+                    onChange={e => setTarget(formatAmountDisplay(e.target.value))}
                     placeholder="0"
                     className="w-full py-3 px-4 pr-10 bg-surface-50 border border-surface-200 rounded-xl text-lg font-black focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   />
@@ -129,7 +131,7 @@ export default function WishlistModal({ open, onClose, onSave }: Props) {
 
               <button
                 onClick={handleSubmit}
-                disabled={saving || !name.trim() || !parseFloat(target)}
+                disabled={saving || !name.trim() || !parseAmountDisplay(target)}
                 className="w-full py-4 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-brand-300/30 active:scale-[0.98] disabled:opacity-50 transition-all"
               >
                 {saving ? 'Đang lưu...' : '🎯 Thêm mục tiêu tiết kiệm'}

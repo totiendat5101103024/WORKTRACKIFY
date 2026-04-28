@@ -6,12 +6,11 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
-import { useFixedExpenses } from '../hooks/useFixedExpenses';
 import { useWishlist } from '../hooks/useWishlist';
 import { useFinanceSettings } from '../hooks/useFinanceSettings';
 import { usePlannedExpenses } from '../hooks/usePlannedExpenses';
 import { useCalendar } from './CalendarContext';
-import type { Transaction, FixedExpense, WishlistItem, FinanceSettings, PlannedExpense } from '../types/finance';
+import type { Transaction, WishlistItem, FinanceSettings, PlannedExpense } from '../types/finance';
 
 interface FinanceContextValue {
   // Transactions
@@ -24,16 +23,6 @@ interface FinanceContextValue {
   totalManualIncome: number;
   totalManualExpense: number;
 
-  // Fixed Expenses
-  fixedExpenses: FixedExpense[];
-  fixedExpensesLoading: boolean;
-  addFixedExpense: (data: Omit<FixedExpense, 'id' | 'createdAt' | 'paidMonths'>) => Promise<FixedExpense>;
-  updateFixedExpense: (expense: FixedExpense) => Promise<void>;
-  removeFixedExpense: (id: string) => Promise<void>;
-  toggleFixedExpensePaid: (id: string, monthDate: Date) => Promise<void>;
-  getFixedExpensesTotal: (monthDate: Date) => number;
-  isFixedExpensePaid: (id: string, monthDate: Date) => boolean;
-
   // Wishlist
   wishlistItems: WishlistItem[];
   wishlistLoading: boolean;
@@ -44,24 +33,23 @@ interface FinanceContextValue {
   wishlistTotalSaved: number;
   wishlistTotalTarget: number;
 
-  // Planned Expenses (Khoản chuẩn bị chi)
+  // Planned Expenses (Khoản chuẩn bị chi — includes recurring/pinned fixed expenses)
   plannedExpenses: PlannedExpense[];
   plannedExpensesLoading: boolean;
-  addPlannedExpense: (data: Omit<PlannedExpense, 'id' | 'createdAt'>) => Promise<PlannedExpense>;
+  addPlannedExpense: (data: Omit<PlannedExpense, 'id' | 'createdAt' | 'completedMonths'>) => Promise<PlannedExpense>;
   removePlannedExpense: (id: string) => Promise<void>;
+  tickPlannedExpense: (id: string, monthDate: Date) => Promise<void>;
+  togglePinPlanned: (id: string) => Promise<void>;
+  getPlannedForMonth: (monthDate: Date) => PlannedExpense[];
+  getPlannedTotalForMonth: (monthDate: Date) => number;
   refreshPlannedExpenses: () => Promise<void>;
-  totalPlanned: number;
 
   // Finance Settings
   financeSettings: FinanceSettings;
   updateFinanceSettings: (partial: Partial<FinanceSettings>) => void;
 
-  // Smart Analytics
   /**
-   * "Safe to Spend" = Estimated Calendar Salary + Manual Incomes
-   *                    - Total Fixed Expenses
-   *                    - Total Manual Expenses already spent
-   *                    - Savings Goal
+   * "Safe to Spend" = Salary + Income − Spent − Planned(this month) − Savings
    */
   safeToSpend: number;
 }
@@ -76,26 +64,21 @@ interface ProviderProps {
 
 export function FinanceProvider({ children, year, month }: ProviderProps) {
   const txHook = useTransactions(year, month);
-  const feHook = useFixedExpenses();
   const wlHook = useWishlist();
   const fsHook = useFinanceSettings();
   const peHook = usePlannedExpenses();
 
-  // Bridge: read estimated salary from CalendarContext
   const { estimatedMonthlySalary, currentMonth } = useCalendar();
 
-  // Compute "Safe to Spend"
   const safeToSpend = useMemo(() => {
     const totalIncome = estimatedMonthlySalary + txHook.totalIncome;
-    const totalFixedExpenses = feHook.getTotalForMonth(currentMonth);
     const totalManualExpenses = txHook.totalExpense;
+    const planned = peHook.getTotalForMonth(currentMonth);
     const savingsGoal = fsHook.settings.savingsGoal;
-    const totalPlanned = peHook.totalPlanned;
-
-    return totalIncome - totalFixedExpenses - totalManualExpenses - totalPlanned - savingsGoal;
+    return totalIncome - totalManualExpenses - planned - savingsGoal;
   }, [
     estimatedMonthlySalary, txHook.totalIncome, txHook.totalExpense,
-    feHook, currentMonth, fsHook.settings.savingsGoal, peHook.totalPlanned,
+    peHook, currentMonth, fsHook.settings.savingsGoal,
   ]);
 
   const value: FinanceContextValue = {
@@ -108,16 +91,6 @@ export function FinanceProvider({ children, year, month }: ProviderProps) {
     refreshTransactions: txHook.refresh,
     totalManualIncome: txHook.totalIncome,
     totalManualExpense: txHook.totalExpense,
-
-    // Fixed Expenses
-    fixedExpenses: feHook.expenses,
-    fixedExpensesLoading: feHook.loading,
-    addFixedExpense: feHook.add,
-    updateFixedExpense: feHook.update,
-    removeFixedExpense: feHook.remove,
-    toggleFixedExpensePaid: feHook.togglePaid,
-    getFixedExpensesTotal: feHook.getTotalForMonth,
-    isFixedExpensePaid: feHook.isPaidForMonth,
 
     // Wishlist
     wishlistItems: wlHook.items,
@@ -134,14 +107,16 @@ export function FinanceProvider({ children, year, month }: ProviderProps) {
     plannedExpensesLoading: peHook.loading,
     addPlannedExpense: peHook.add,
     removePlannedExpense: peHook.remove,
+    tickPlannedExpense: peHook.tick,
+    togglePinPlanned: peHook.togglePin,
+    getPlannedForMonth: peHook.getItemsForMonth,
+    getPlannedTotalForMonth: peHook.getTotalForMonth,
     refreshPlannedExpenses: peHook.refresh,
-    totalPlanned: peHook.totalPlanned,
 
     // Settings
     financeSettings: fsHook.settings,
     updateFinanceSettings: fsHook.update,
 
-    // Smart Analytics
     safeToSpend,
   };
 
@@ -154,8 +129,6 @@ export function FinanceProvider({ children, year, month }: ProviderProps) {
 
 export function useFinance(): FinanceContextValue {
   const ctx = useContext(FinanceContext);
-  if (!ctx) {
-    throw new Error('useFinance must be used within a FinanceProvider');
-  }
+  if (!ctx) throw new Error('useFinance must be used within a FinanceProvider');
   return ctx;
 }

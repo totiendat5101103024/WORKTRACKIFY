@@ -9,6 +9,7 @@ import { X, TrendingUp, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Transaction, TransactionType, CategoryPreset } from '../../types/finance';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../types/finance';
+import { formatAmountDisplay, parseAmountDisplay } from '../../lib/formatAmount';
 
 interface Props {
   open: boolean;
@@ -20,13 +21,16 @@ interface Props {
 
 export default function TransactionModal({ open, onClose, onSave, initial }: Props) {
   const [type, setType] = useState<TransactionType>(initial?.type || 'expense');
-  const [amount, setAmount] = useState(initial?.amount?.toString() || '');
+  const [amount, setAmount] = useState(initial?.amount ? initial.amount.toLocaleString('en-US') : '');
   const [note, setNote] = useState(initial?.note || '');
   const [date, setDate] = useState(initial?.date || format(new Date(), 'yyyy-MM-dd'));
   const [category, setCategory] = useState(initial?.category || '');
   const [categoryEmoji, setCategoryEmoji] = useState(initial?.categoryEmoji || '');
   const [saving, setSaving] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setAmount(formatAmountDisplay(e.target.value));
 
   const categories: CategoryPreset[] = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
@@ -49,7 +53,7 @@ export default function TransactionModal({ open, onClose, onSave, initial }: Pro
   useEffect(() => {
     if (open) {
       setType(initial?.type || 'expense');
-      setAmount(initial?.amount?.toString() || '');
+      setAmount(initial?.amount ? initial.amount.toLocaleString('en-US') : '');
       setNote(initial?.note || '');
       setDate(initial?.date || format(new Date(), 'yyyy-MM-dd'));
       setCategory(initial?.category || '');
@@ -63,7 +67,7 @@ export default function TransactionModal({ open, onClose, onSave, initial }: Pro
   };
 
   const handleSubmit = async () => {
-    const numAmount = parseFloat(amount);
+    const numAmount = parseAmountDisplay(amount);
     if (!numAmount || numAmount <= 0 || !category) return;
     setSaving(true);
     try {
@@ -143,9 +147,10 @@ export default function TransactionModal({ open, onClose, onSave, initial }: Pro
                 <div className="relative">
                   <input
                     ref={amountRef}
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={amount}
-                    onChange={e => setAmount(e.target.value)}
+                    onChange={handleAmountChange}
                     placeholder="0"
                     className="w-full py-4 px-4 pr-12 bg-surface-50 border border-surface-200 rounded-2xl text-2xl font-black text-surface-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-300 transition-all"
                   />
@@ -202,7 +207,7 @@ export default function TransactionModal({ open, onClose, onSave, initial }: Pro
               {/* Submit */}
               <button
                 onClick={handleSubmit}
-                disabled={saving || !parseFloat(amount) || !category}
+                disabled={saving || !parseAmountDisplay(amount) || !category}
                 className={`w-full py-4 rounded-2xl font-bold text-white text-sm transition-all active:scale-[0.98] disabled:opacity-50 shadow-lg ${
                   type === 'expense'
                     ? 'bg-gradient-to-r from-red-500 to-rose-500 shadow-red-200/40'

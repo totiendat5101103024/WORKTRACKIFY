@@ -89,6 +89,10 @@ export async function addPlannedExpense(item: PlannedExpense): Promise<void> {
   await setDoc(doc(db, COLLECTIONS.PLANNED_EXPENSES, item.id), item);
 }
 
+export async function updatePlannedExpense(item: PlannedExpense): Promise<void> {
+  await setDoc(doc(db, COLLECTIONS.PLANNED_EXPENSES, item.id), item);
+}
+
 export async function deletePlannedExpense(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTIONS.PLANNED_EXPENSES, id));
 }

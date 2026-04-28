@@ -50,6 +50,12 @@ export interface PlannedExpense {
   emoji: string;
   category: string;
   note: string;
+  /** Ghim lên đầu danh sách */
+  isPinned: boolean;
+  /** Tự động lặp lại mỗi tháng (dùng cho chi phí cố định) */
+  isRecurring: boolean;
+  /** Các tháng đã tick xong — format "YYYY-MM" */
+  completedMonths: string[];
   createdAt: number;
 }
 
